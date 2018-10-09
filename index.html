@@ -293,6 +293,136 @@
   
   
   <div class="post-block">
+    <link itemprop="mainEntityOfPage" href="http://yoursite.com/2018/10/09/VGA实现动态显示/">
+
+    <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
+      <meta itemprop="name" content="dragonstrong">
+      <meta itemprop="description" content="">
+      <meta itemprop="image" content="/images/avatar.png">
+    </span>
+
+    <span hidden itemprop="publisher" itemscope itemtype="http://schema.org/Organization">
+      <meta itemprop="name" content="腾弓科技">
+    </span>
+
+    
+      <header class="post-header">
+
+        
+        
+          <h1 class="post-title" itemprop="name headline">
+                
+                <a class="post-title-link" href="/2018/10/09/VGA实现动态显示/" itemprop="url">Untitled</a></h1>
+        
+
+        <div class="post-meta">
+          <span class="post-time">
+            
+              <span class="post-meta-item-icon">
+                <i class="fa fa-calendar-o"></i>
+              </span>
+              
+                <span class="post-meta-item-text">Posted on</span>
+              
+              <time title="Post created" itemprop="dateCreated datePublished" datetime="2018-10-09T15:10:13+08:00">
+                2018-10-09
+              </time>
+            
+
+            
+
+            
+          </span>
+
+          
+
+          
+            
+              <span class="post-comments-count">
+                <span class="post-meta-divider">|</span>
+                <span class="post-meta-item-icon">
+                  <i class="fa fa-comment-o"></i>
+                </span>
+                <a href="/2018/10/09/VGA实现动态显示/#comments" itemprop="discussionUrl">
+                  <span class="post-comments-count valine-comment-count" data-xid="/2018/10/09/VGA实现动态显示/" itemprop="commentCount"></span>
+                </a>
+              </span>
+            
+          
+
+          
+          
+
+          
+
+          
+
+          
+
+        </div>
+      </header>
+    
+
+    
+    
+    
+    <div class="post-body" itemprop="articleBody">
+
+      
+      
+
+      
+        
+          
+            <p>1.1要求<br>基本要求：制作gif动图，小白框里循环显示多幅图片，640x480（像素点）@60HZ（扫描频率），此处制作的是循环显示4幅像素100x100，位深度为24的图片。<br>附加功能：自由发挥，此处做的是在底部设一像素100x20的水平自由移动的长条形方块，通过按键控制图框的移动以使图片降落在方块上，当图框底边和方块上方完全重合时（或竖直往下一点），方块停止运动。SW4按下向左移动，SW3按下向右移动，SW2按下向下移动，SW4、SW3同时按下向左移动（SW1复位键，被占用）。<br>1.2设计<br>1.2.1屏幕上中下均分，显示红绿蓝三色<br>1.2.1.1VGA显示原理<br>时序标准<br> <img src="https://upload-images.jianshu.io/upload_images/14346728-05d58a3495bcb6f6.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="时序标准.png"><br>根据时序标准作图：有效区和无效区像素点分布长度<br> <img src="https://upload-images.jianshu.io/upload_images/14346728-6d71d6eae3b26cd6.png?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="时许标准2.png"><br>接口电路<br> <img src="https://upload-images.jianshu.io/upload_images/14346728-a07b8137a6c98974.jpg?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="接口电路.jpg"><br>IO129:水平同步时钟HSYNC<br>IO128::竖直同步时钟VSYNC<br>(IO123~IO125)              (IO120~IO122)               (IO114  IO119)<br>     红                         绿                          蓝<br>8位位宽，256种组合对应256种颜色，通过控制[7：0]的编码调节颜色，一般红-绿-蓝按3：3：2搭配（16位的5：5：6），引脚可以自己配；8’b111_111_11为白色，8’b000_000_00为黑色，8’b111_000_00为红色，其他同理。<br>1.2.1.2编程思路<br>根据VGA时序，我们可以用FPGA模拟显示。总区域800x525像素点，扫描频率60HZ,FPGA的时钟要和其同步，为800x525x60 25MHZ，再模拟出水平同步信号h_sync,扫96个像素点；竖直同步信号v_sync,扫2行（2x800=1600像素点）。一平面上均匀分布着800x525个像素点，以该平面左上角为坐标原点，水平向右为x正方向，竖直向下为y轴正方向，平面上像素点坐标为（x_cnt,y_cnt）,通过x_cnt,y_cnt坐标值将600x480的有效区均匀划分为水平的三块：<br>上1/3：if(h_cnt&gt;=144&amp;&amp;h_cnt&lt;=783 &amp;&amp;v_cnt&gt;=35&amp;v_cnt&lt;=195)<br>       vga_data &lt;= 8’b111_000_00;      //设置为为红色<br>中1/3：if(h_cnt&gt;=144&amp;&amp;h_cnt&lt;=783 &amp;&amp;v_cnt&gt;=196&amp;v_cnt&lt;=356)<br>        vga_data &lt;= 8’b000_111_00;     //设置为绿色<br>下1/3：if(h_cnt&gt;=144&amp;&amp;h_cnt&lt;=783 &amp;&amp;v_cnt&gt;=366&amp;v_cnt&lt;=514)<br>        vga_data &lt;= 8’b000_000_11;     //设置为蓝色<br>1.2.2分割出100x100的小白框并让其移动<br>①和上面一样圈定范围，先在有效区左上角分出一静止的白框,设为if语句的最高优先级：<br>if(h_cnt&gt;=144&amp;&amp;h_cnt&lt;=243&amp;&amp;v_cnt&gt;=35&amp;&amp;v_cnt&lt;=134)<br>vga_data&lt;=8’b111_111_11;<br>②接着让它移动，左移h_cnt-1;右移h_cnt+1;上移v_cnt-1;下移v_cnt+1。以640x480有效区的左上角为原点，水平向右为x正轴，竖直向下为y正轴，设图框向右移动了x_cnt,向下移动了y_cnt，则移动后图框设为白色的代码为：<br>if(h_cnt&gt;=(144+x_cnt)&amp;&amp;h_cnt&lt;=(243+x_cnt )&amp;&amp;v_cnt&gt;=(35+y_cnt)&amp;&amp;v_cnt&lt;=(134+y_cnt)<br>vga_data&lt;=8‘b111_111_11;<br>1.2.3小白框里显示一幅图<br>先用ps制作1幅100x100像素，位深度为24的bmp图片，再用matlab将24位提取为8位（红绿蓝各取高3-3-2），生成.coe文件，也即10000个像素点的8位二进制数（存储为16进制），然后ise加载进去，生成.xco文件,可以将它理解成一个容量10000的数组。将白色框里的原来显示白色的8’b111_111_11改为图片中的某个像素点的二进制数img即可，时钟来一次地址addr加1，即可扫完10000个像素点，图片也就显示在白框里了。<br>if(h_cnt&gt;=(144+x_cnt)&amp;&amp;h_cnt&lt;=(243+x_cnt )&amp;&amp;v_cnt&gt;=(35+y_cnt)&amp;&amp;v_cnt&lt;=(134+y_cnt)<br>vga_data&lt;=img;<br>1.2.4gif动图<br>4幅100x100的图片，就有40000个8位二进制数，matlab生成单幅图片的.coe文件后，将其合并在一起，0~9999为第一幅图片，10000~19999为第二幅图片，20000~29999为第三幅图片，30000~39999为第四幅图片。这些数装在1个40000的容器里，要显示第一幅图片addr就读取0~9999；显示第二幅图片就读取10000~19999；显示第三幅图片就读取20000~19999；显示第四幅图片就读取30000~39999。只不过要注意一幅图片扫描完一次不能立刻扫下一幅图，因为时间太短，人眼看不到，所以在图片与图片之间要加延时，扫描多次，写个计数器即可。<br>1.2.5在有效区底部生成100x20并水平自由移动的方块<br>和生成白色方框并让其移动一样，不过这里少了上下移动。，以640x480有效区的左上角为原点，水平向右为x正轴，竖直向下为y正轴，设方块向右移动了x_cnt1：<br>if(h_cnt&gt;=(‘d144+x_cnt1)&amp;&amp;h_cnt&lt;=(‘d243+x_cnt1 )&amp;&amp;v_cnt&gt;=(‘d495+0)&amp;&amp;v_cnt&lt;=(‘d514+0))<br>vga_data&lt;=8’b110_110_01;                      //设置为黄色<br>1.2.6按键控制图框运动<br>因为SW1被复位键占了，所以只剩3个按键。令SW4按下为左移；SW3按下为右移；SW2按下为下移；SW4、SW3同时按下为上移。写if-else if判断语句让h_cnt、v_cnt自加自减即可实现。<br>1.2.7方块停下的设定<br>给方块的移动加上条件，设置一个状态标志pos_flag,当pos_flag=0时才让其移动。而产生pos_flag的代码为：<br>always@(*)<br>if(x_cnt1==x_cnt&amp;&amp;y_cnt&gt;=360)<br>pos_flag=1;<br>else<br>pos_flag=0;<br>1.3结果<br><img src="https://upload-images.jianshu.io/upload_images/14346728-712bed8be149af89.PNG?imageMogr2/auto-orient/strip%7CimageView2/2/w/1240" alt="VGA.PNG"><br>1.4程序源码<br><a href="https://pan.baidu.com/s/1G6CKAJX9-agAhYH0s-J7sw" title="程序源码" target="_blank" rel="noopener">https://pan.baidu.com/s/1G6CKAJX9-agAhYH0s-J7sw</a></p>
+
+          
+        
+      
+    </div>
+    
+    
+    
+
+    
+
+    
+
+    
+
+    <footer class="post-footer">
+      
+
+      
+
+      
+
+      
+      
+        <div class="post-eof"></div>
+      
+    </footer>
+  </div>
+  
+  
+  
+  </article>
+
+
+    
+      
+
+  
+
+  
+  
+  
+
+  <article class="post post-type-normal" itemscope itemtype="http://schema.org/Article">
+  
+  
+  
+  <div class="post-block">
     <link itemprop="mainEntityOfPage" href="http://yoursite.com/2018/10/09/post/">
 
     <span hidden itemprop="author" itemscope itemtype="http://schema.org/Person">
@@ -590,7 +720,7 @@
               
                 <a href="/archives">
               
-                  <span class="site-state-item-count">2</span>
+                  <span class="site-state-item-count">3</span>
                   <span class="site-state-item-name">posts</span>
                 </a>
               </div>
