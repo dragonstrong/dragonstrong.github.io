@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<search>
+  <entry>
+    <title></title>
+    <url>%2F2018%2F10%2F09%2Fpost%2F</url>
+    <content type="text"><![CDATA[QuartusII 13.0 subscription edition 操作一、仿真1、加端口Insert node or Bus→node finder→list→全选→&gt;&gt;→ok2、设定输入端值Simulation→run timing simulation二、调用只需将.bdf和.bsf文件加入新工程即可，这两个文件要在新工程同一路径下，在new project wizard里选中它们add all。]]></content>
+  </entry>
+  <entry>
+    <title><![CDATA[image]]></title>
+    <url>%2F2018%2F10%2F07%2Fimage%2F</url>
+    <content type="text"><![CDATA[]]></content>
+  </entry>
+</search>
