@@ -1,31 +1,20 @@
 <?xml version="1.0" encoding="utf-8"?>
 <search>
   <entry>
+    <title><![CDATA[win10下IPV6配置]]></title>
+    <url>%2F2018%2F10%2F07%2FIPV6%2F</url>
+    <content type="text"><![CDATA[首先从微软官网下载修复工具，（在同文件夹下已下好） 现在将源地址发出来：https://support.microsoft.com/en-us/kb/929852； 进入官网后，选择Re-enable IPv6 相关的工具，下载了Re-enable IPv6 on nontunnel interfaces and on IPv6 tunnel interfaces。 如下图最后这个：下载完成，先打开注册表： 首先运行cmd，直接输入regedit。 按照粗红框路径找到上图细红框中两个注册表后删除。 路径：HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\ 需删除注册表:Tcpip6、TCPIP6TUNNEL 现在运行微软官网下载的修复工具，然后重启。 重启后打开ie，输入http://test-ipv6.com/如果上面步骤不能实现，在注册表中HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\services\Dnscache\Parameters下面新建一个DWORD值，名为AddrConfigControl，并将值设为0。重启再次执行操作。]]></content>
+      <categories>
+        <category>常用操作</category>
+      </categories>
+      <tags>
+        <tag>IPV6</tag>
+      </tags>
+  </entry>
+  <entry>
     <title><![CDATA[VGA动态显示]]></title>
     <url>%2F2018%2F10%2F07%2FVGA%E5%AE%9E%E7%8E%B0%E5%8A%A8%E6%80%81%E6%98%BE%E7%A4%BA%2F</url>
     <content type="text"><![CDATA[1.1要求基本要求：制作gif动图，小白框里循环显示多幅图片，640x480（像素点）@60HZ（扫描频率），此处制作的是循环显示4幅像素100x100，位深度为24的图片。附加功能：自由发挥，此处做的是在底部设一像素100x20的水平自由移动的长条形方块，通过按键控制图框的移动以使图片降落在方块上，当图框底边和方块上方完全重合时（或竖直往下一点），方块停止运动。SW4按下向左移动，SW3按下向右移动，SW2按下向下移动，SW4、SW3同时按下向左移动（SW1复位键，被占用）。1.2设计1.2.1屏幕上中下均分，显示红绿蓝三色1.2.1.1VGA显示原理时序标准 根据时序标准作图：有效区和无效区像素点分布长度 接口电路 IO129:水平同步时钟HSYNCIO128::竖直同步时钟VSYNC(IO123~IO125) (IO120~IO122) (IO114 IO119) 红 绿 蓝8位位宽，256种组合对应256种颜色，通过控制[7：0]的编码调节颜色，一般红-绿-蓝按3：3：2搭配（16位的5：5：6），引脚可以自己配；8’b111_111_11为白色，8’b000_000_00为黑色，8’b111_000_00为红色，其他同理。1.2.1.2编程思路根据VGA时序，我们可以用FPGA模拟显示。总区域800x525像素点，扫描频率60HZ,FPGA的时钟要和其同步，为800x525x60 25MHZ，再模拟出水平同步信号h_sync,扫96个像素点；竖直同步信号v_sync,扫2行（2x800=1600像素点）。一平面上均匀分布着800x525个像素点，以该平面左上角为坐标原点，水平向右为x正方向，竖直向下为y轴正方向，平面上像素点坐标为（x_cnt,y_cnt）,通过x_cnt,y_cnt坐标值将600x480的有效区均匀划分为水平的三块：上1/3：if(h_cnt&gt;=144&amp;&amp;h_cnt&lt;=783 &amp;&amp;v_cnt&gt;=35&amp;v_cnt&lt;=195) vga_data &lt;= 8’b111_000_00; //设置为为红色中1/3：if(h_cnt&gt;=144&amp;&amp;h_cnt&lt;=783 &amp;&amp;v_cnt&gt;=196&amp;v_cnt&lt;=356) vga_data &lt;= 8’b000_111_00; //设置为绿色下1/3：if(h_cnt&gt;=144&amp;&amp;h_cnt&lt;=783 &amp;&amp;v_cnt&gt;=366&amp;v_cnt&lt;=514) vga_data &lt;= 8’b000_000_11; //设置为蓝色1.2.2分割出100x100的小白框并让其移动①和上面一样圈定范围，先在有效区左上角分出一静止的白框,设为if语句的最高优先级：if(h_cnt&gt;=144&amp;&amp;h_cnt&lt;=243&amp;&amp;v_cnt&gt;=35&amp;&amp;v_cnt&lt;=134)vga_data&lt;=8’b111_111_11;②接着让它移动，左移h_cnt-1;右移h_cnt+1;上移v_cnt-1;下移v_cnt+1。以640x480有效区的左上角为原点，水平向右为x正轴，竖直向下为y正轴，设图框向右移动了x_cnt,向下移动了y_cnt，则移动后图框设为白色的代码为：if(h_cnt&gt;=(144+x_cnt)&amp;&amp;h_cnt&lt;=(243+x_cnt )&amp;&amp;v_cnt&gt;=(35+y_cnt)&amp;&amp;v_cnt&lt;=(134+y_cnt)vga_data&lt;=8‘b111_111_11;1.2.3小白框里显示一幅图先用ps制作1幅100x100像素，位深度为24的bmp图片，再用matlab将24位提取为8位（红绿蓝各取高3-3-2），生成.coe文件，也即10000个像素点的8位二进制数（存储为16进制），然后ise加载进去，生成.xco文件,可以将它理解成一个容量10000的数组。将白色框里的原来显示白色的8’b111_111_11改为图片中的某个像素点的二进制数img即可，时钟来一次地址addr加1，即可扫完10000个像素点，图片也就显示在白框里了。if(h_cnt&gt;=(144+x_cnt)&amp;&amp;h_cnt&lt;=(243+x_cnt )&amp;&amp;v_cnt&gt;=(35+y_cnt)&amp;&amp;v_cnt&lt;=(134+y_cnt)vga_data&lt;=img;1.2.4gif动图4幅100x100的图片，就有40000个8位二进制数，matlab生成单幅图片的.coe文件后，将其合并在一起，0~9999为第一幅图片，10000~19999为第二幅图片，20000~29999为第三幅图片，30000~39999为第四幅图片。这些数装在1个40000的容器里，要显示第一幅图片addr就读取0~9999；显示第二幅图片就读取10000~19999；显示第三幅图片就读取20000~19999；显示第四幅图片就读取30000~39999。只不过要注意一幅图片扫描完一次不能立刻扫下一幅图，因为时间太短，人眼看不到，所以在图片与图片之间要加延时，扫描多次，写个计数器即可。1.2.5在有效区底部生成100x20并水平自由移动的方块和生成白色方框并让其移动一样，不过这里少了上下移动。，以640x480有效区的左上角为原点，水平向右为x正轴，竖直向下为y正轴，设方块向右移动了x_cnt1：if(h_cnt&gt;=(‘d144+x_cnt1)&amp;&amp;h_cnt&lt;=(‘d243+x_cnt1 )&amp;&amp;v_cnt&gt;=(‘d495+0)&amp;&amp;v_cnt&lt;=(‘d514+0))vga_data&lt;=8’b110_110_01; //设置为黄色1.2.6按键控制图框运动因为SW1被复位键占了，所以只剩3个按键。令SW4按下为左移；SW3按下为右移；SW2按下为下移；SW4、SW3同时按下为上移。写if-else if判断语句让h_cnt、v_cnt自加自减即可实现。1.2.7方块停下的设定给方块的移动加上条件，设置一个状态标志pos_flag,当pos_flag=0时才让其移动。而产生pos_flag的代码为：always@(*)if(x_cnt1==x_cnt&amp;&amp;y_cnt&gt;=360)pos_flag=1;elsepos_flag=0;1.3结果1.4程序源码https://pan.baidu.com/s/1G6CKAJX9-agAhYH0s-J7sw]]></content>
-      <categories>
-        <category>FPGA</category>
-      </categories>
-      <tags>
-        <tag>FPGA</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title><![CDATA[image]]></title>
-    <url>%2F2018%2F10%2F07%2Fimage%2F</url>
-    <content type="text"><![CDATA[]]></content>
-      <categories>
-        <category>图片</category>
-      </categories>
-      <tags>
-        <tag>图片</tag>
-      </tags>
-  </entry>
-  <entry>
-    <title><![CDATA[Quartus操作]]></title>
-    <url>%2F2018%2F10%2F07%2Fpost%2F</url>
-    <content type="text"><![CDATA[QuartusII 13.0 subscription edition 操作一、仿真1、加端口Insert node or Bus→node finder→list→全选→&gt;&gt;→ok2、设定输入端值Simulation→run timing simulation二、调用只需将.bdf和.bsf文件加入新工程即可，这两个文件要在新工程同一路径下，在new project wizard里选中它们add all。]]></content>
       <categories>
         <category>FPGA</category>
       </categories>
